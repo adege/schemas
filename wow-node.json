@@ -1,0 +1,140 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/adege/schemas/main/wow-node.json",
+  "title": "WOW Node Schema",
+  "description": "Schema for WOW nodes",
+
+  "$defs": {
+
+    "auto-node": {
+      "type": "object",
+      "description": "Auto Node",
+      "required": ["auto"],
+      "additionalProperties": false,
+      "properties": {
+        "auto": {
+          "enum": ["args", "loop", "data"],
+          "description": "Auto node type"
+        },
+        "args": { "$ref": "#$defs/auto-args" },
+        "x2args": { "$ref": "#$defs/auto-x2args" },
+        "eval": { "$ref": "#$defs/auto-eval" },
+        "loop": { "$ref": "#$defs/auto-loop" },
+        "data": { "$ref": "#$defs/auto-data" },
+        "template": {
+          "oneOf": [
+            {"$ref": "#$defs/list-based-node"},
+            {"$ref": "#$defs/non-list-based-node"}
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "auto": { "const": "args" } }
+          },
+          "then": {
+            "required": ["args", "template"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "auto": { "const": "loop" } }
+          },
+          "then": {
+            "properties": {
+              "x2args": false,
+              "eval": false
+            },
+            "required": ["loop", "template"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "auto": { "const": "data" } }
+          },
+          "then": {
+            "properties": {
+              "x2args": false,
+              "eval": false
+            },
+            "required": ["data", "template"]
+          }
+        }
+      ]
+    },
+
+    "nodeitem": {
+      "description": "Item that can exist as node",
+        "anyOf": [
+          {"$ref": "wow-action.json#/$defs/action"},
+          {"$ref": "wow-command.json#/$defs/commandAction"},
+          {"$ref": "wow-file.json#/$defs/fileAction"},
+          {"$ref": "wow-http.json#/$defs/httpAction"},
+          {"$ref": "wow-snippet.json#/$defs/snippetAction"},
+          {"$ref": "wow-command.json#/$defs/commandObject"},
+          {"$ref": "wow-file.json#/$defs/fileObject"},
+          {"$ref": "wow-http.json#/$defs/httpObject"},
+          {"$ref": "wow-snippet.json#/$defs/snippetObject"},
+          {"$ref": "wow-command.json#/$defs/command"},
+          {"$ref": "wow-pipe.json#/$defs/stream"},
+          {"$ref": "wow-yaml.json#/$defs/yamllist"},
+          {"$ref": "#$defs/auto-node"}
+        ]
+    },
+
+    "non-list-based-node": {
+      "description": "Node as non-list",
+      "$ref": "#$defs/nodeitem"
+    },
+
+    "list-based-node": {
+      "type": "array",
+      "description": "Node as list",
+      "additionalItems": false,
+      "items": {"$ref": "#$defs/nodeitem"}
+    },
+
+    "auto-args": {
+      "type": "array",
+      "description": "Auto Args list",
+      "minItems": 1,
+      "additionalItems": true,
+      "items": {"type": "object"}
+    },
+
+    "auto-x2args": {
+      "type": "array",
+      "description": "Auto X2 Args list",
+      "minItems": 1,
+      "additionalItems": true,
+      "items": {"type": "object"}
+    },
+
+    "auto-eval": {
+      "type": "array",
+      "description": "Auto Eval list",
+      "minItems": 1,
+      "additionalItems": true,
+      "items": {"type": "object"}
+    },
+
+    "auto-loop": {
+      "type": "array",
+      "description": "Auto Loop Node",
+      "minItems": 1,
+      "additionalItems": true,
+      "items": {"type": "object"}
+    },
+
+    "auto-data": {
+      "type": "array",
+      "description": "Auto Data Node",
+      "minItems": 1,
+      "additionalItems": true,
+      "items": {"type": "object"}
+    }
+
+  }
+
+}

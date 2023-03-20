@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/adege/schemas/main/wow-pipe.json",
+  "title": "WOW Pipe Schema",
+  "description": "Schema for WOW pipes",
+
+  "$defs": {
+
+    "pipes": {
+      "type": "array",
+      "description": "List of pipes",
+      "additionalItems": false,
+      "items": {
+        "anyOf": [
+          {"$ref": "#$defs/stream"},
+          {"$ref": "wow-yaml.json#/$defs/yamllist"},
+          {"$ref": "wow-node.json#/$defs/auto-node"}
+        ]
+      }
+    },
+
+    "stream": {
+      "type": "object",
+      "description": "Stream Node",
+      "required": [
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "stream": {
+          "type": ["string", "null"],
+          "description": "Stream name"
+        },
+        "sources": {
+          "$ref": "#$defs/stream-sources",
+          "description": "Stream sources"
+        },
+        "pipes": {
+          "$ref": "#$defs/pipes",
+          "description": "Sub-stream pipes"
+        },
+        "filters": {
+          "$ref": "wow-filter.json#/$defs/filters",
+          "description": "Stream filters"
+        }
+      }
+    },
+
+    "stream-sources": {
+      "type": [ "object", "array", "string"],
+      "description": "Stream sources mapping or list or single stream name",
+      "additionalItems": false
+    }
+
+  }
+
+}

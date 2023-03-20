@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/adege/schemas/main/wow-filter.json",
+  "title": "WOW Filter Schema",
+  "description": "Schema for WOW filters",
+
+  "$defs": {
+
+    "filters": {
+      "type": "array",
+      "description": "List of filters",
+      "additionalItems": false,
+      "items": {
+        "anyOf": [
+          {"$ref": "#$defs/filter"},
+          {"type": "string"},
+          {"$ref": "wow-node.json#/$defs/auto-node"}
+        ]
+      }
+    },
+
+    "filter": {
+      "type": "object",
+      "description": "Stream filter",
+      "additionalProperties": true,
+      "properties": {
+      }
+    }
+
+  }
+
+}

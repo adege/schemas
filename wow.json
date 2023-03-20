@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/adege/schemas/main/wow.json",
+  "title": "WOW Schema",
+  "description": "Root schema for WOW YAML documents",
+  "examples": [
+    "*.wow.yaml"
+  ],
+
+  "$defs": {
+
+    "task-array": {
+      "type": "array",
+      "markdownDescription": "List of tasks",
+      "additionalItems": false,
+      "items": {
+        "anyOf": [
+          { "$ref": "wow-yaml.json#/$defs/yamllist" },
+          {
+            "allOf": [
+              { "$ref": "wow-task.json#/$defs/task" },
+              { "not": { "$ref": "wow-action.json#/$defs/action" } },
+              { "not": { "$ref": "wow-command.json#/$defs/commandAction" } },
+              { "not": { "$ref": "wow-file.json#/$defs/fileAction" } },
+              { "not": { "$ref": "wow-http.json#/$defs/httpAction" } },
+              { "not": { "$ref": "wow-snippet.json#/$defs/snippetAction" } },
+              { "not": { "$ref": "wow-command.json#/$defs/commandObject" } },
+              { "not": { "$ref": "wow-file.json#/$defs/fileObject" } },
+              { "not": { "$ref": "wow-http.json#/$defs/httpObject" } },
+              { "not": { "$ref": "wow-snippet.json#/$defs/snippetObject" } },
+              { "not": { "$ref": "wow-command.json#/$defs/command" } }
+            ]
+          }
+        ]
+      }
+    },
+
+    "non-task-array": {
+      "type": "array",
+      "markdownDescription": "List of WOW items except for task",
+      "additionalItems": false,
+      "items": {
+        "allOf": [
+          {
+            "anyOf": [
+              { "$ref": "wow-yaml.json#/$defs/yamllist" },
+              { "$ref": "wow-action.json#/$defs/action" },
+              { "$ref": "wow-command.json#/$defs/commandAction" },
+              { "$ref": "wow-file.json#/$defs/fileAction" },
+              { "$ref": "wow-http.json#/$defs/httpAction" },
+              { "$ref": "wow-snippet.json#/$defs/snippetAction" },
+              { "$ref": "wow-command.json#/$defs/commandObject" },
+              { "$ref": "wow-file.json#/$defs/fileObject" },
+              { "$ref": "wow-http.json#/$defs/httpObject" },
+              { "$ref": "wow-snippet.json#/$defs/snippetObject" },
+              { "$ref": "wow-command.json#/$defs/command" }
+            ]
+          },
+          { "not": { "$ref": "wow-task.json#/$defs/task" } }
+        ]
+      }
+    }
+  },
+
+  "oneOf": [
+    { "$ref": "wow-yaml.json#/$defs/yamllist-array" },
+    {
+      "oneOf": [
+        { "$ref": "wow-yaml.json#/$defs/yamllist" },
+        { "$ref": "wow-task.json#/$defs/task" },
+        { "$ref": "wow-action.json#/$defs/action" },
+        { "$ref": "wow-command.json#/$defs/commandAction" },
+        { "$ref": "wow-file.json#/$defs/fileAction" },
+        { "$ref": "wow-http.json#/$defs/httpAction" },
+        { "$ref": "wow-snippet.json#/$defs/snippetAction" },
+        { "$ref": "wow-command.json#/$defs/commandObject" },
+        { "$ref": "wow-file.json#/$defs/fileObject" },
+        { "$ref": "wow-http.json#/$defs/httpObject" },
+        { "$ref": "wow-snippet.json#/$defs/snippetObject" },
+        { "$ref": "wow-command.json#/$defs/command" },
+        { "$ref": "#$defs/task-array" },
+        { "$ref": "#$defs/non-task-array" }
+      ]
+    }
+  ]
+}

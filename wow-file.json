@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/adege/schemas/main/wow-file.json",
+  "title": "WOW File Schema",
+  "description": "Schema for WOW file",
+
+  "$defs": {
+
+    "fileAction": {
+      "type": "object",
+      "description": "File Action Node",
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": ["string", "null"],
+          "description": "Action name"
+        },
+        "variables": {
+          "type": "object",
+          "description": "Action variables"
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "Endpoint where this action is going to be executed.\n\nMust be a valid endpoint name."
+        },
+        "via": {
+          "type": ["string", "array"],
+          "description": "Access protocol to use in this action.\n\nWhen single via is given, only that via will be used. If a via list is given, first available via will be used."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable/disable this action."
+        },
+        "files": {
+          "$ref": "#$defs/files",
+          "description": "List of file operations"
+        }
+      }
+    },
+
+    "files": {
+      "type": "array",
+      "description": "List of file operations",
+      "additionalItems": false,
+      "items": {
+        "anyOf": [
+          {"$ref": "#$defs/fileObject"},
+          {"$ref": "wow-yaml.json#/$defs/yamllist"},
+          {"$ref": "wow-node.json#/$defs/auto-node"}
+        ]
+      }
+    },
+
+    "fileObject": {
+      "type": "object",
+      "description": "File operation",
+      "additionalProperties": false,
+      "required": ["method"],
+      "dependentRequired": {
+        "get": ["rpath", "lpath"],
+        "put": ["rpath", "lpath"],
+        "remove": ["path"],
+        "mkdir": ["path"],
+        "rmdir": ["path"],
+        "chmod": ["path", "mode"]
+      },
+      "properties": {
+        "method": {
+          "enum": ["get", "put", "remove", "mkdir", "rmdir", "chmod"],
+          "description": "File operation method."
+        },
+        "rpath": {
+          "type": "string",
+          "description": "Remote path of the file"
+        },
+        "lpath": {
+          "type": "string",
+          "description": "Local path of the file"
+        },
+        "path": {
+          "type": "string",
+          "description": "Path of the file or directory"
+        },
+        "mode": {
+          "type": "number",
+          "description": "File mode in octal format.\n\nExample: 0o777"
+        }
+      }
+    }
+
+  }
+
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/adege/schemas/main/wow-yaml.json",
+  "title": "WOW Schema",
+  "description": "Root schema for WOW YAML documents",
+  "examples": [
+    "*.wow.yaml"
+  ],
+
+  "$defs": {
+
+    "yamllist": {
+      "type": "object",
+      "description": "YAML List Node",
+      "additionalProperties": false,
+      "properties": {
+        "<yamllist>": {
+          "type": "string",
+          "description": "Path to YAML file"
+        }
+      }
+    },
+
+    "yamllist-array": {
+      "type": "array",
+      "additionalItems": false,
+      "items": {
+        "$ref": "#$defs/yamllist"
+      }
+    }
+
+  }
+
+}

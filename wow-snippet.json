@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/adege/schemas/main/wow-snippet.json",
+  "title": "WOW Snippet Schema",
+  "description": "Schema for WOW snippets",
+
+  "$defs": {
+
+    "snippetAction": {
+      "type": "object",
+      "description": "Snippet Action Node",
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": ["string", "null"],
+          "description": "Action name"
+        },
+        "variables": {
+          "type": "object",
+          "description": "Action variables"
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "Endpoint where this action is going to be executed.\n\nMust be a valid endpoint name."
+        },
+        "via": {
+          "type": ["string", "array"],
+          "description": "Access protocol to use in this action.\n\nWhen single via is given, only that via will be used. If a via list is given, first available via will be used."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable/disable this action."
+        },
+        "export": {
+          "type": "string",
+          "description": "Export variable"
+        },
+        "pipes": {
+          "$ref": "wow-pipe.json#/$defs/pipes",
+          "description": "Action pipes"
+        },
+        "filters": {
+          "$ref": "wow-filter.json#/$defs/filters",
+          "description": "Action base stream filters"
+        },
+        "snippets": {
+          "$ref": "#$defs/snippets",
+          "description": "List of snippets"
+        }
+      }
+    },
+
+    "snippets": {
+      "type": "array",
+      "description": "List of snippets",
+      "additionalItems": false,
+      "items": {
+        "anyOf": [
+          {"$ref": "#$defs/snippetObject"},
+          {"$ref": "wow-yaml.json#/$defs/yamllist"},
+          {"$ref": "wow-node.json#/$defs/auto-node"}
+        ]
+      }
+    },
+
+    "snippetObject": {
+      "type": "object",
+      "description": "Snippet operation",
+      "additionalProperties": false,
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Python code snippet"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the code snippet"
+        },
+        "args": {
+          "type": "array",
+          "description": "Keyword Arguments (TBD)",
+          "additionalItems": true,
+          "items": [
+          ]
+        },
+        "kwargs": {
+          "type": "object",
+          "description": "Keyword Arguments (TBD)",
+          "additionalProperties": true,
+          "properties": {
+          }
+        },
+        "stream": {
+          "type": "string",
+          "description": "Base stream name"
+        },
+        "pipes": {
+          "$ref": "wow-pipe.json#/$defs/pipes",
+          "description": "Action pipes"
+        },
+        "filters": {
+          "$ref": "wow-filter.json#/$defs/filters",
+          "description": "Action base stream filters"
+        }
+      }
+    }
+
+  }
+
+}

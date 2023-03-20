@@ -1,0 +1,123 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/adege/schemas/main/wow-http.json",
+  "title": "WOW HTTP Schema",
+  "description": "Schema for WOW HTTP",
+
+  "$defs": {
+
+    "httpAction": {
+      "type": "object",
+      "description": "HTTP Action Node",
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": ["string", "null"],
+          "description": "Action name"
+        },
+        "variables": {
+          "type": "object",
+          "description": "Action variables"
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "Endpoint where this action is going to be executed.\n\nMust be a valid endpoint name."
+        },
+        "via": {
+          "type": ["string", "array"],
+          "description": "Access protocol to use in this action.\n\nWhen single via is given, only that via will be used. If a via list is given, first available via will be used."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable/disable this action."
+        },
+        "export": {
+          "type": "string",
+          "description": "Export variable"
+        },
+        "pipes": {
+          "$ref": "wow-pipe.json#/$defs/pipes",
+          "description": "Action pipes"
+        },
+        "filters": {
+          "$ref": "wow-filter.json#/$defs/filters",
+          "description": "Action base stream filters"
+        },
+        "http-actions": {
+          "$ref": "#$defs/http-actions",
+          "description": "List of HTTP actions"
+        }
+      }
+    },
+
+    "http-actions": {
+      "type": "array",
+      "description": "List of HTTP actions",
+      "additionalItems": false,
+      "items": {
+        "anyOf": [
+          {"$ref": "#$defs/httpObject"},
+          {"$ref": "wow-yaml.json#/$defs/yamllist"},
+          {"$ref": "wow-node.json#/$defs/auto-node"}
+        ]
+      }
+    },
+
+    "httpObject": {
+      "type": "object",
+      "description": "HTTP operation",
+      "additionalProperties": false,
+      "required": ["method", "path"],
+      "properties": {
+        "method": {
+          "enum": ["GET", "OPTIONS", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
+          "description": "HTTP operation method."
+        },
+        "path": {
+          "type": "string",
+          "description": "URL of the request"
+        },
+        "args": {
+          "type": "object",
+          "description": "HTTP Arguments (TBD)",
+          "additionalProperties": true,
+          "properties": {
+            "headers": {
+              "type": "object",
+              "description": "HTTP headers to include in the request. (TBD)"
+            },
+            "data": {
+              "type": ["object", "string"],
+              "description": "HTTP data to include in the request. (TBD)"
+            },
+            "data.json": {
+              "type": "object",
+              "description": "HTTP data to include as JSON format in the request. (TBD)"
+            },
+            "timeout": {
+              "type": ["number", "string"],
+              "description": "HTTP timeout for the request.\n\nCan be an integer or a tuple. (TBD)"
+            },
+            "stream": {
+              "type": "boolean",
+              "description": "Whether the request is a stream or not.\n\nIf False, the response content will be immediately downloaded."
+            }
+          }
+        },
+        "pipes": {
+          "$ref": "wow-pipe.json#/$defs/pipes",
+          "description": "Action pipes"
+        },
+        "filters": {
+          "$ref": "wow-filter.json#/$defs/filters",
+          "description": "Action base stream filters"
+        }
+      }
+    }
+
+  }
+
+}

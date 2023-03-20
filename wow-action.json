@@ -1,0 +1,146 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://raw.githubusercontent.com/adege/schemas/main/wow-action.json",
+  "title": "WOW Action Schema",
+  "description": "Schema for WOW actions",
+
+  "$defs": {
+
+    "actions": {
+      "type": "array",
+      "description": "List of actions",
+      "additionalItems": false,
+      "items": {
+        "anyOf": [
+          {"$ref": "#$defs/action"},
+          {"$ref": "wow-command.json#/$defs/commandAction"},
+          {"$ref": "wow-file.json#/$defs/fileAction"},
+          {"$ref": "wow-http.json#/$defs/httpAction"},
+          {"$ref": "wow-snippet.json#/$defs/snippetAction"},
+          {"$ref": "wow-command.json#/$defs/commandObject"},
+          {"$ref": "wow-file.json#/$defs/fileObject"},
+          {"$ref": "wow-http.json#/$defs/httpObject"},
+          {"$ref": "wow-snippet.json#/$defs/snippetObject"},
+          {"$ref": "wow-command.json#/$defs/command"},
+          {"$ref": "wow-yaml.json#/$defs/yamllist"},
+          {"$ref": "wow-node.json#/$defs/auto-node"}
+        ]
+      }
+    },
+
+    "action": {
+      "type": "object",
+      "description": "Action Node",
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "type": ["string", "null"],
+          "description": "Action name"
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "Endpoint where this action is going to be executed.\n\nMust be a valid endpoint name."
+        },
+        "via": {
+          "type": ["string", "array"],
+          "description": "Access protocol to use in this action.\n\nWhen single via is given, only that via will be used. If a via list is given, first available via will be used."
+        },
+        "verbose": {
+          "type": "boolean",
+          "description": "Enable/disable verbose mode.\n\nAffect control plane. In verbose mode, execution details of child actions will be logged. This doesn't have any effect on the outputs of child actions. Only, meta information is turned on and off."
+        },
+        "quite": {
+          "type": "boolean",
+          "description": "Enable/disable quite mode.\n\nAffects data plane. In quite mode, output of child actions won't be logged."
+        },
+        "check": {
+          "type": "boolean",
+          "description": "Enable/disable result checking.\n\nWhen enabled, the status of child actions will affect the status of this action. Otherwise, success is returned."
+        },
+        "indent": {
+          "type": "boolean",
+          "description": "Enable/disable indentation in logging.\n\nBy default, every nested action will be indented by the configured amount (see -I command-line option). This option can turn indentation off for the current node."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable/disable this action."
+        },
+        "stop-on-fail": {
+          "type": "boolean",
+          "description": "Enable/disable stop-on-fail behaviour.\n\nWhen enabled, execution will stop when a failure occurs in this node."
+        },
+        "stoppable": {
+          "type": "boolean",
+          "description": "Enable/disable soft-stop for this action.\n\nDefines exit point for soft-stop. When stoppable is true, the current action will be executed normally, but sibling actions following this node won't be executed. Control will be passed to the parent node, which will also run until a soft-stop point is hit. This will continue until the root node."
+        },
+        "parallel": {
+          "type": "boolean",
+          "description": "Enable/disable concurrent execution of child actions.\n\nWhen disabled, child nodes will execute in sequence as in the order they are defined. When enabled, all child nodes will be executed in separate threads concurrently.\nAffects only action type of nodes."
+        },
+        "variables": {
+          "type": "object",
+          "description": "Action variables"
+        },
+        "http-params": {
+          "type": "object",
+          "description": "HTTP parameters to be used in this node.\n\nOnly applicable to 'http-actions' ActionType. Values provided in this mapping will override HTTP settings of the current endpoint. This can also be used to make anonymous HTTP calls. In such a case, the endpoint parameter will be disregarded."
+        },
+        "repeat": {
+          "$ref": "#$defs/action-repeat",
+          "description": "Makes the current action repeat."
+        },
+        "pipes": {
+          "$ref": "wow-pipe.json#/$defs/pipes",
+          "description": "Action pipes"
+        },
+        "filters": {
+          "$ref": "wow-filter.json#/$defs/filters",
+          "description": "Action base stream filters"
+        },
+        "actions": {
+          "$ref": "#$defs/actions",
+          "description": "Child actions"
+        }
+      }
+    },
+
+    "action-repeat": {
+      "type": "object",
+      "description": "Action repeat settings",
+      "required": [
+      ],
+      "additionalProperties": true,
+      "properties": {
+        ".until": {
+          "type": "string",
+          "description": "Repeat Condition\n\nMust be a valid Python expression."
+        },
+        ".count": {
+          "type": ["number", "string"],
+          "description": "Max repeat count when <condition> never occurs.\n\n<count> can be a positive number or 'inf' for infinite.\n\nDefault: 'inf'"
+        },
+        ".index": {
+          "type": "number",
+          "description": "Index base.\n\nSets the initial value of the '.index' loop variable. Can be a positive number.\n\nDefault: 1"
+        },
+        ".stoppable": {
+          "type": "boolean",
+          "description": "Controls soft-stop behavior.\n\nRepeat loop will terminate when soft-stop is triggered if this is set to true.\n\nDefault: false"
+        },
+        ".check": {
+          "type": "boolean",
+          "description": "Controls whether failures in any repeat cycles should affect the overall status of the repeat node.\n\nDefault: true"
+        },
+        ".log": {
+          "type": "boolean",
+          "description": "Controls whether every repeated cycle should be logged.\n\nWhen false, only last cycle will be logged. This setting doesn't affect the console output but only log files.\n\nDefault: true"
+        }
+      }
+    }
+
+  }
+
+}
