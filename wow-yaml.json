@@ -9,6 +9,14 @@
 
   "$defs": {
 
+    "yamllist-array": {
+      "type": "array",
+      "additionalItems": false,
+      "items": {
+        "$ref": "#$defs/yamllist"
+      }
+    },
+
     "yamllist": {
       "type": "object",
       "description": "YAML List Node",
@@ -18,14 +26,6 @@
           "type": "string",
           "description": "Path to YAML file"
         }
-      }
-    },
-
-    "yamllist-array": {
-      "type": "array",
-      "additionalItems": false,
-      "items": {
-        "$ref": "#$defs/yamllist"
       }
     }
 

@@ -56,7 +56,6 @@
       "items": {
         "anyOf": [
           {"$ref": "#$defs/commandObject"},
-          {"$ref": "wow-file.json#/$defs/fileObject"},
           {"$ref": "#$defs/command"},
           {"$ref": "wow-yaml.json#/$defs/yamllist"},
           {"$ref": "wow-node.json#/$defs/auto-node"}

@@ -31,7 +31,11 @@
           "description": "Stream name"
         },
         "sources": {
-          "$ref": "#$defs/stream-sources",
+          "type": [ 
+            {"$ref": "#$defs/stream-sources-function"},
+            {"$ref": "#$defs/stream-sources-list"},
+            "string"
+          ],
           "description": "Stream sources"
         },
         "pipes": {
@@ -45,10 +49,39 @@
       }
     },
 
-    "stream-sources": {
-      "type": [ "object", "array", "string"],
-      "description": "Stream sources mapping or list or single stream name",
-      "additionalItems": false
+    "stream-sources-function": {
+      "type": "object",
+      "description": "Stream sources function",
+      "additionalProperties": false,
+      "properties": {
+        "startswith": {
+          "type": "string",
+          "description": "Source stream filter by startswith function"
+        },
+        "endswith": {
+          "type": "string",
+          "description": "Source stream filter by endswith function"
+        },
+        "contains": {
+          "type": "string",
+          "description": "Source stream filter by contains function"
+        },
+        "range": {
+          "type": "string",
+          "description": "Source stream filter by range function"
+        },
+        "regex": {
+          "type": "string",
+          "description": "Source stream filter by regex function"
+        }
+      }
+    },
+
+    "stream-sources-list": {
+      "type": "array",
+      "description": "List of stream sources",
+      "additionalItems": false,
+      "items": ["string"]
     }
 
   }

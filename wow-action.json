@@ -6,28 +6,6 @@
 
   "$defs": {
 
-    "actions": {
-      "type": "array",
-      "description": "List of actions",
-      "additionalItems": false,
-      "items": {
-        "anyOf": [
-          {"$ref": "#$defs/action"},
-          {"$ref": "wow-command.json#/$defs/commandAction"},
-          {"$ref": "wow-file.json#/$defs/fileAction"},
-          {"$ref": "wow-http.json#/$defs/httpAction"},
-          {"$ref": "wow-snippet.json#/$defs/snippetAction"},
-          {"$ref": "wow-command.json#/$defs/commandObject"},
-          {"$ref": "wow-file.json#/$defs/fileObject"},
-          {"$ref": "wow-http.json#/$defs/httpObject"},
-          {"$ref": "wow-snippet.json#/$defs/snippetObject"},
-          {"$ref": "wow-command.json#/$defs/command"},
-          {"$ref": "wow-yaml.json#/$defs/yamllist"},
-          {"$ref": "wow-node.json#/$defs/auto-node"}
-        ]
-      }
-    },
-
     "action": {
       "type": "object",
       "description": "Action Node",
@@ -104,6 +82,25 @@
           "$ref": "#$defs/actions",
           "description": "Child actions"
         }
+      }
+    },
+
+    "actions": {
+      "type": "array",
+      "description": "List of actions",
+      "additionalItems": false,
+      "items": {
+        "anyOf": [
+          {"$ref": "#$defs/action"},
+          {"$ref": "wow-command.json#/$defs/commandAction"},
+          {"$ref": "wow-file.json#/$defs/fileAction"},
+          {"$ref": "wow-http.json#/$defs/httpAction"},
+          {"$ref": "wow-snippet.json#/$defs/snippetAction"},
+          {"$ref": "wow-command.json#/$defs/commandObject"},
+          {"$ref": "wow-command.json#/$defs/command"},
+          {"$ref": "wow-yaml.json#/$defs/yamllist"},
+          {"$ref": "wow-node.json#/$defs/auto-node"}
+        ]
       }
     },
 

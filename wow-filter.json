@@ -12,8 +12,8 @@
       "additionalItems": false,
       "items": {
         "anyOf": [
-          {"$ref": "#$defs/filter"},
           {"type": "string"},
+          {"$ref": "#$defs/filter"},
           {"$ref": "wow-node.json#/$defs/auto-node"}
         ]
       }
@@ -21,10 +21,7 @@
 
     "filter": {
       "type": "object",
-      "description": "Stream filter",
-      "additionalProperties": true,
-      "properties": {
-      }
+      "description": "Stream filter"
     }
 
   }

@@ -31,6 +31,10 @@
           "type": "string",
           "description": "Sub-directory path in output path of task artifacts, where\n\nout_path = ${out}/${prefix}/${tag}/${subdir}"
         },
+        "pool": {
+          "$ref": "wow-pool.json#/$defs/pool",
+          "description": "Pool"
+        },
         "endpoint": {
           "type": "string",
           "description": "Default endpoint name"
