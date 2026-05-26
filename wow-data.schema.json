@@ -1,0 +1,277 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WOW YAML Data File",
+  "description": "A YAML data file consumed by 'auto: data' (via 'data.yaml: path'). Defines typed column schemas ('datatypes:') and row data ('data:'). Supports two formats: 'csv-homogenous' (default) where rows are comma-separated strings, and 'map-heterogeneous' where rows are key-value mappings.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+
+    "format": {
+      "type": "string",
+      "enum": ["csv-homogenous", "map-heterogeneous"],
+      "description": "Data layout format. 'csv-homogenous': rows are CSV strings (or lists) split into fields defined by 'datatypes:'. 'map-heterogeneous': rows are key-value mappings deserialized by type-specific handlers. Default: 'csv-homogenous'.",
+      "default": "csv-homogenous"
+    },
+
+    "datatypes": {
+      "type": "array",
+      "description": "Column schema. Each entry defines how one block of columns is deserialized. Order matters: entries are applied left-to-right across the CSV columns. Only used in 'csv-homogenous' format.",
+      "items": {
+        "$ref": "#/definitions/DatatypeEntry"
+      }
+    },
+
+    "variables": {
+      "type": "object",
+      "description": "Common variables available during template expansion within this data file. Substituted via ${name}.",
+      "additionalProperties": true
+    },
+
+    "delimiters": {
+      "type": "object",
+      "description": "Delimiter overrides for this data file.",
+      "additionalProperties": false,
+      "properties": {
+        "alternatives_delimiter": {
+          "type": "string",
+          "description": "Delimiter used to separate alternative values within a single cell, producing the cartesian product of rows. Default: ':'.",
+          "default": ":"
+        },
+        "array_delimiter": {
+          "type": "string",
+          "description": "Delimiter used by Data subclasses (Fields, MetaData, SnippetData) to separate array-valued entries within a single CSV cell. The subclass replaces this delimiter with ',' before further processing. Default: ';'.",
+          "default": ";"
+        }
+      }
+    },
+
+    "data": {
+      "type": "array",
+      "description": "Row data. In 'csv-homogenous' format, each item is a CSV string, a YAML list (auto-joined with commas), a WAML include directive, or an auto-generator node. In 'map-heterogeneous' format, each item is a key-value mapping dict.",
+      "items": {
+        "$ref": "#/definitions/DataItem"
+      }
+    }
+
+  },
+
+  "definitions": {
+
+    "DatatypeEntry": {
+      "description": "One datatype entry in 'datatypes:'. Can be a single column-group definition or a list of such definitions (twin/multi-column form: all groups must consume the same number of columns).",
+      "oneOf": [
+        {
+          "$ref": "#/definitions/DatatypeSpec"
+        },
+        {
+          "type": "array",
+          "description": "Twin/multi-column form. Each spec in the list is applied to the same column range simultaneously (column widths must match). Only supported with named Data subclasses, not list-form field definitions.",
+          "items": {
+            "$ref": "#/definitions/DatatypeSpec"
+          },
+          "minItems": 2
+        }
+      ]
+    },
+
+    "DatatypeSpec": {
+      "type": "object",
+      "description": "Column-group definition. 'datatype' is the field list or named Data subclass. Optional 'prefix' scopes the exported variable names.",
+      "required": ["datatype"],
+      "additionalProperties": true,
+      "properties": {
+        "datatype": {
+          "description": "Column definition. A list of strings names the fields consumed left-to-right: ['field1', 'field2']. A string names a registered Data subclass (e.g. 'Fields', 'MetaData', 'SnippetData') that deserializes the columns itself.",
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "List of field names. Each name maps to one CSV column in order.",
+              "minItems": 1
+            },
+            {
+              "type": "string",
+              "description": "Name of a registered Data subclass that handles deserialization. Built-in: 'Fields', 'MetaData', 'SnippetData'. Custom subclasses can be added via plugins."
+            }
+          ]
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Prefix applied to variable names produced by this datatype. Resulting names: ${prefix.field}. Used to avoid collisions in twin/multi-column forms."
+        }
+      }
+    },
+
+    "DataItem": {
+      "description": "One item in the 'data:' list. Can be a CSV row string, a YAML list row, a WAML include directive, or an auto-generator node.",
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "CSV row string. Fields are split by comma. Backslash at end of line continues on the next physical line (leading whitespace on continuation lines is stripped). Alternative values within a cell are separated by 'alternatives_delimiter' (default ':') to produce the cartesian product."
+        },
+        {
+          "type": "array",
+          "description": "Row given as a YAML list. Items are converted to strings and joined with commas before parsing.",
+          "items": {}
+        },
+        {
+          "$ref": "#/definitions/DataWamlDirective"
+        },
+        {
+          "$ref": "#/definitions/DataAutoNode"
+        }
+      ]
+    },
+
+    "DataWamlDirective": {
+      "type": "object",
+      "description": "WAML include directive inside 'data:'. '<yamllist>:' splices rows from an external file. Pointing at an empty file is silently ignored.",
+      "additionalProperties": false,
+      "properties": {
+        "<yamllist>": {
+          "type": "string",
+          "description": "Path to a YAML file whose top-level list of rows is spliced in place of this directive."
+        },
+        "variables": {
+          "type": "object",
+          "description": "Variables substituted into the included file before splicing.",
+          "additionalProperties": true
+        },
+        "enabled": {
+          "description": "If false, this include is skipped entirely.",
+          "oneOf": [
+            {"type": "boolean"},
+            {"type": "string"}
+          ]
+        }
+      }
+    },
+
+    "DataAutoNode": {
+      "type": "object",
+      "description": "An auto-generator node inside 'data:'. Generates row strings programmatically. The 'template:' items must be strings (CSV row templates), not action nodes. Supports the same auto types as task actions: 'args', 'range', 'data'.",
+      "required": ["auto", "template"],
+      "additionalProperties": true,
+      "properties": {
+        "auto": {
+          "description": "Auto-generator type.",
+          "oneOf": [
+            {"type": "string", "enum": ["args", "range", "data"]},
+            {
+              "type": "array",
+              "description": "Multi-source form: multiple sources zipped by row index.",
+              "minItems": 2,
+              "items": {"$ref": "#/definitions/DataAutoSourceSpec"}
+            }
+          ]
+        },
+        "template": {
+          "type": "array",
+          "description": "One or more CSV row template strings expanded per iteration. ${var} substitution is applied to each string.",
+          "items": {"type": "string"}
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Prefix for loop counter variables: ${prefix.index}, ${prefix.count}."
+        },
+        "index": {
+          "oneOf": [{"type": "integer"}, {"type": "string"}],
+          "description": "Starting value for the loop index. Default: 1.",
+          "default": 1
+        },
+        "offset": {
+          "oneOf": [{"type": "integer"}, {"type": "string"}],
+          "description": "Index offset. Default: 0.",
+          "default": 0
+        },
+        "args": {
+          "type": "array",
+          "description": "Argument definitions for 'auto: args'.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "x2args": {
+          "type": "array",
+          "description": "Second-expansion argument nodes for 'auto: args'.",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "eval": {
+          "type": "array",
+          "description": "Python expressions producing derived variables for 'auto: args'.",
+          "items": {
+            "type": "object",
+            "additionalProperties": {"type": "string"}
+          }
+        },
+        "delimiter": {
+          "type": "string",
+          "description": "Delimiter for splitting arg value strings. Default: ','.",
+          "default": ","
+        },
+        "range": {
+          "description": "Range spec for 'auto: range'. Single integer N → range(N); list [stop] or [start, stop] or [start, stop, step].",
+          "oneOf": [
+            {"type": "integer"},
+            {"type": "array", "items": {"type": "integer"}, "minItems": 1, "maxItems": 3},
+            {"type": "string"}
+          ]
+        },
+        "data.csv": {
+          "type": "string",
+          "description": "Path to a CSV data file for 'auto: data'."
+        },
+        "data.yaml": {
+          "type": "string",
+          "description": "Path to a YAML data file for 'auto: data'."
+        },
+        "filter": {
+          "type": "string",
+          "description": "Row filter expression for 'auto: data'. {} is the row dict; {.index} is 0-based row index; [:key:] is dict-key shorthand."
+        },
+        "filter.var": {
+          "type": "string",
+          "description": "Variable name whose value is used as the filter expression."
+        },
+        "filter.range": {
+          "type": "string",
+          "description": "Range applied to post-filter rows."
+        },
+        "filter.offset": {
+          "oneOf": [{"type": "integer"}, {"type": "string"}],
+          "description": "Index offset for filter.range. Default: 0."
+        },
+        "range.ie": {
+          "type": "string",
+          "description": "Like 'range' but excludes empty rows before index selection."
+        }
+      }
+    },
+
+    "DataAutoSourceSpec": {
+      "type": "object",
+      "description": "One source entry in a multi-source 'auto: [...]' node within 'data:'. Same semantics as task-level AutoSourceSpec.",
+      "additionalProperties": true,
+      "properties": {
+        "args": {"type": "array", "items": {"type": "object", "additionalProperties": true}},
+        "x2args": {"type": "array", "items": {"type": "object", "additionalProperties": true}},
+        "eval": {"type": "array", "items": {"type": "object", "additionalProperties": {"type": "string"}}},
+        "delimiter": {"type": "string"},
+        "range": {"oneOf": [{"type": "integer"}, {"type": "array"}, {"type": "string"}]},
+        "data.yaml": {"type": "string"},
+        "data.csv": {"type": "string"},
+        "filter": {"type": "string"},
+        "filter.range": {"type": "string"},
+        "filter.offset": {"oneOf": [{"type": "integer"}, {"type": "string"}]},
+        "filter.var": {"type": "string"},
+        "range.ie": {"type": "string"},
+        "prefix": {"type": "string"}
+      }
+    }
+
+  }
+}

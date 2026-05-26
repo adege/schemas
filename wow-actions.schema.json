@@ -1,17 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "WOW Task File",
-  "description": "A YAML list of task objects. Each task defines what to run, where to run it, and with what data. Task files are the primary unit of execution: `wow -X <file>`.",
+  "title": "WOW Actions File",
+  "description": "A standalone YAML list of action items. Included into task files via '<yamllist>: path' inside an 'actions:' list, or nested within another actions file. Enables composability: large action trees can be split into focused, reusable files.",
   "type": "array",
   "items": {
-    "oneOf": [
-      {
-        "$ref": "#/definitions/Task"
-      },
-      {
-        "$ref": "#/definitions/WamlDirective"
-      }
-    ]
+    "$ref": "#/definitions/ActionItem"
   },
   "definitions": {
     "TemplateExpr": {
