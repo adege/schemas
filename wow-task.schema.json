@@ -75,6 +75,26 @@
             "$ref": "#/definitions/PoolEntry"
           }
         },
+        "status-bar-location": {
+          "type": "string",
+          "enum": ["bottom", "top"],
+          "default": "bottom",
+          "description": "Position of the status bar pane. 'bottom' (default) splits a horizontal strip at the bottom of the root window; 'top' splits at the top."
+        },
+        "status-bar-left": {
+          "type": "string",
+          "description": "Format string for the left section of the status bar (native tmux mode only). Uses +{key} syntax. Built-in keys: +{task}, +{elapsed}, +{pass}, +{fail}, +{total}, +{pct}. Default: ' +{task}'."
+        },
+        "status-bar-right": {
+          "type": "string",
+          "description": "Format string for the right section of the status bar (native tmux mode only). Uses +{key} syntax. Built-in keys: +{task}, +{elapsed}, +{pass}, +{fail}, +{total}, +{pct}. Default: '⏱ +{elapsed} '."
+        },
+        "status-bar-refresh-interval": {
+          "type": "number",
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "description": "Seconds between timed status bar refreshes. Default: 1.0. The bar also refreshes immediately on every leaf-action completion regardless of this interval."
+        },
         "actions": {
           "type": "array",
           "description": "Top-level action list for this task.",
