@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "WOW Task File",
-  "description": "A YAML list of task objects. Each task defines what to run, where to run it, and with what data. Task files are the primary unit of execution: `wow -X <file>`.",
+  "title": "Octopic Task File",
+  "description": "A YAML list of task objects. Each task defines what to run, where to run it, and with what data. Task files are the primary unit of execution: `octopic -X <file>`.",
   "type": "array",
   "items": {
     "oneOf": [
@@ -9,7 +9,7 @@
         "$ref": "#/definitions/Task"
       },
       {
-        "$ref": "#/definitions/WamlDirective"
+        "$ref": "#/definitions/OctoYamlDirective"
       }
     ]
   },
@@ -21,7 +21,7 @@
     },
     "Task": {
       "type": "object",
-      "description": "A single WOW task. At run time, WOW resolves the pool, builds variables, and executes the action tree.",
+      "description": "A single Octopic task. At run time, Octopic resolves the pool, builds variables, and executes the action tree.",
       "additionalProperties": false,
       "required": [
         "actions"
@@ -104,7 +104,7 @@
         },
         "<yamldict>": {
           "type": "string",
-          "description": "WAML merge directive. The mapping in this YAML file is merged into the task object at load time. Use to split task-level configuration (pool:, variables:, endpoint:, etc.) across files."
+          "description": "OctoYAML merge directive. The mapping in this YAML file is merged into the task object at load time. Use to split task-level configuration (pool:, variables:, endpoint:, etc.) across files."
         }
       }
     },
@@ -271,7 +271,7 @@
       }
     },
     "ActionItem": {
-      "description": "One entry in an actions list. Can be: a bare shell-command string; a structured action/auto/direct-feed node dict; or a WAML include directive.",
+      "description": "One entry in an actions list. Can be: a bare shell-command string; a structured action/auto/direct-feed node dict; or a OctoYAML include directive.",
       "anyOf": [
         {
           "type": "string",
@@ -281,13 +281,13 @@
           "$ref": "#/definitions/ActionNode"
         },
         {
-          "$ref": "#/definitions/WamlDirective"
+          "$ref": "#/definitions/OctoYamlDirective"
         }
       ]
     },
-    "WamlDirective": {
+    "OctoYamlDirective": {
       "type": "object",
-      "description": "WAML include directive. Processed at load time before any action runs. '<yamllist>:' splices a YAML list file into the current list; '<yamldict>:' merges a YAML mapping file into the current mapping.",
+      "description": "OctoYAML include directive. Processed at load time before any action runs. '<yamllist>:' splices a YAML list file into the current list; '<yamldict>:' merges a YAML mapping file into the current mapping.",
       "additionalProperties": false,
       "properties": {
         "<yamllist>": {
@@ -662,11 +662,11 @@
         },
         "data.csv": {
           "type": "string",
-          "description": "For 'auto: data'. Path to a CSV data file (relative to the wow2 root)."
+          "description": "For 'auto: data'. Path to a CSV data file (relative to the octopic2 root)."
         },
         "data.yaml": {
           "type": "string",
-          "description": "For 'auto: data'. Path to a YAML data file (relative to the wow2 root)."
+          "description": "For 'auto: data'. Path to a YAML data file (relative to the octopic2 root)."
         },
         "range.ie": {
           "type": "string",
@@ -1023,7 +1023,7 @@
           "$ref": "#/definitions/CommandNode"
         },
         {
-          "$ref": "#/definitions/WamlDirective"
+          "$ref": "#/definitions/OctoYamlDirective"
         }
       ]
     },
@@ -1461,7 +1461,7 @@
     },
     "SnippetItem": {
       "type": "object",
-      "description": "A Python snippet. The script must define a 'wowmain' function. Its return value is written to the output stream.",
+      "description": "A Python snippet. The script must define a 'octopicmain' function. Its return value is written to the output stream.",
       "required": [
         "code"
       ],
@@ -1481,11 +1481,11 @@
         },
         "args": {
           "type": "array",
-          "description": "Positional arguments passed to wowmain(). May include +[stream] expressions."
+          "description": "Positional arguments passed to octopicmain(). May include +[stream] expressions."
         },
         "kwargs": {
           "type": "object",
-          "description": "Keyword arguments passed to wowmain().",
+          "description": "Keyword arguments passed to octopicmain().",
           "additionalProperties": true
         },
         "stream": {

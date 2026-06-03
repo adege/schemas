@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "WOW YAML Data File",
+  "title": "Octopic YAML Data File",
   "description": "A YAML data file consumed by 'auto: data' (via 'data.yaml: path'). Defines typed column schemas ('datatypes:') and row data ('data:'). Supports two formats: 'csv-homogenous' (default) where rows are comma-separated strings, and 'map-heterogeneous' where rows are key-value mappings.",
   "type": "object",
   "additionalProperties": false,
@@ -47,7 +47,7 @@
 
     "data": {
       "type": "array",
-      "description": "Row data. In 'csv-homogenous' format, each item is a CSV string, a YAML list (auto-joined with commas), a WAML include directive, or an auto-generator node. In 'map-heterogeneous' format, each item is a key-value mapping dict.",
+      "description": "Row data. In 'csv-homogenous' format, each item is a CSV string, a YAML list (auto-joined with commas), a OctoYAML include directive, or an auto-generator node. In 'map-heterogeneous' format, each item is a key-value mapping dict.",
       "items": {
         "$ref": "#/definitions/DataItem"
       }
@@ -103,7 +103,7 @@
     },
 
     "DataItem": {
-      "description": "One item in the 'data:' list. Can be a CSV row string, a YAML list row, a WAML include directive, or an auto-generator node.",
+      "description": "One item in the 'data:' list. Can be a CSV row string, a YAML list row, a OctoYAML include directive, or an auto-generator node.",
       "oneOf": [
         {
           "type": "string",
@@ -115,7 +115,7 @@
           "items": {}
         },
         {
-          "$ref": "#/definitions/DataWamlDirective"
+          "$ref": "#/definitions/DataOctoYamlDirective"
         },
         {
           "$ref": "#/definitions/DataAutoNode"
@@ -123,9 +123,9 @@
       ]
     },
 
-    "DataWamlDirective": {
+    "DataOctoYamlDirective": {
       "type": "object",
-      "description": "WAML include directive inside 'data:'. '<yamllist>:' splices rows from an external file. Pointing at an empty file is silently ignored.",
+      "description": "OctoYAML include directive inside 'data:'. '<yamllist>:' splices rows from an external file. Pointing at an empty file is silently ignored.",
       "additionalProperties": false,
       "properties": {
         "<yamllist>": {
