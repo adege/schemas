@@ -9,7 +9,7 @@
         "$ref": "#/definitions/Task"
       },
       {
-        "$ref": "#/definitions/OctoYamlDirective"
+        "$ref": "#/definitions/ImportDirective"
       }
     ]
   },
@@ -102,9 +102,21 @@
             "$ref": "#/definitions/ActionItem"
           }
         },
-        "<yamldict>": {
-          "type": "string",
-          "description": "OctoYAML merge directive. The mapping in this YAML file is merged into the task object at load time. Use to split task-level configuration (pool:, variables:, endpoint:, etc.) across files."
+        "<import>": {
+          "description": "Import directive (merge form): the mapping in the imported YAML file is merged into this node at load time. Value is a path, or a {path, variables, enabled} wrapper for a gated import. Use a suffix (e.g. '<import>1', '<import>2') to merge more than one file into the same node. Use to split task-level configuration (pool:, variables:, endpoint:, etc.) across files.",
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["path"],
+              "properties": {
+                "path": { "type": "string" },
+                "variables": { "$ref": "#/definitions/Variables" },
+                "enabled": { "oneOf": [ { "type": "boolean" }, { "type": "string" } ] }
+              }
+            }
+          ]
         }
       }
     },
@@ -281,29 +293,25 @@
           "$ref": "#/definitions/ActionNode"
         },
         {
-          "$ref": "#/definitions/OctoYamlDirective"
+          "$ref": "#/definitions/ImportDirective"
         }
       ]
     },
-    "OctoYamlDirective": {
+    "ImportDirective": {
       "type": "object",
-      "description": "OctoYAML include directive. Processed at load time before any action runs. '<yamllist>:' splices a YAML list file into the current list; '<yamldict>:' merges a YAML mapping file into the current mapping.",
+      "description": "Import directive (list form). Processed at load time before any action runs. A sole '<import>:' inside a list splices the imported file's top-level list in place (a non-list target is coerced to a one-item list). Gate it with sibling 'variables:'/'enabled:'.",
       "additionalProperties": false,
       "properties": {
-        "<yamllist>": {
+        "<import>": {
           "type": "string",
-          "description": "Path to a YAML file whose top-level list is spliced in place of this directive."
-        },
-        "<yamldict>": {
-          "type": "string",
-          "description": "Path to a YAML file whose top-level mapping is merged into the parent node."
+          "description": "Path to a YAML file whose top-level list is spliced in place of this directive (a non-list target becomes a single item)."
         },
         "variables": {
           "$ref": "#/definitions/Variables",
-          "description": "Variables substituted into the included file before it is spliced."
+          "description": "Variables substituted into the imported file before it is spliced."
         },
         "enabled": {
-          "description": "If false, the included content is entirely omitted.",
+          "description": "If false, the imported content is entirely omitted (the list slot is dropped).",
           "oneOf": [
             {
               "type": "boolean"
@@ -1023,7 +1031,7 @@
           "$ref": "#/definitions/CommandNode"
         },
         {
-          "$ref": "#/definitions/OctoYamlDirective"
+          "$ref": "#/definitions/ImportDirective"
         }
       ]
     },

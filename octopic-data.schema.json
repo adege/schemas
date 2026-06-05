@@ -115,7 +115,7 @@
           "items": {}
         },
         {
-          "$ref": "#/definitions/DataOctoYamlDirective"
+          "$ref": "#/definitions/DataImportDirective"
         },
         {
           "$ref": "#/definitions/DataAutoNode"
@@ -123,18 +123,18 @@
       ]
     },
 
-    "DataOctoYamlDirective": {
+    "DataImportDirective": {
       "type": "object",
-      "description": "OctoYAML include directive inside 'data:'. '<yamllist>:' splices rows from an external file. Pointing at an empty file is silently ignored.",
+      "description": "Import directive inside 'data:'. A sole '<import>:' splices rows from an external file in place. Pointing at an empty file is silently ignored.",
       "additionalProperties": false,
       "properties": {
-        "<yamllist>": {
+        "<import>": {
           "type": "string",
           "description": "Path to a YAML file whose top-level list of rows is spliced in place of this directive."
         },
         "variables": {
           "type": "object",
-          "description": "Variables substituted into the included file before splicing.",
+          "description": "Variables substituted into the imported file before splicing.",
           "additionalProperties": true
         },
         "enabled": {
