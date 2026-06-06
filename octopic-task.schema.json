@@ -641,7 +641,7 @@
           "default": ","
         },
         "range": {
-          "description": "For 'auto: range'. Range spec: a single integer N gives range(N); [stop] or [start, stop] or [start, stop, step] mirrors Python's range().",
+          "description": "For 'auto: range'. Range spec: an integer N gives range(N); [stop], [start, stop] or [start, stop, step] mirrors Python's range(). Each value may be an integer or an expression string (which may contain ${var}/+{export} templates) evaluated to an integer, e.g. \"${start}-1\".",
           "oneOf": [
             {
               "type": "integer"
@@ -654,8 +654,7 @@
                     "type": "integer"
                   },
                   {
-                    "type": "string",
-                    "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+                    "type": "string"
                   }
                 ]
               },
@@ -663,8 +662,7 @@
               "maxItems": 3
             },
             {
-              "type": "string",
-              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+              "type": "string"
             }
           ]
         },
@@ -791,7 +789,7 @@
           "default": ","
         },
         "range": {
-          "description": "Numeric range source. Same spec as single-source 'range:'.",
+          "description": "Numeric range source. Same spec as single-source 'range:' — integers or expression strings evaluated to integers.",
           "oneOf": [
             {
               "type": "integer"
@@ -799,14 +797,20 @@
             {
               "type": "array",
               "items": {
-                "type": "integer"
+                "oneOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
               },
               "minItems": 1,
               "maxItems": 3
             },
             {
-              "type": "string",
-              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+              "type": "string"
             }
           ]
         },
@@ -884,11 +888,10 @@
           "additionalProperties": false,
           "properties": {
             "permutation": {
-              "type": "array",
-              "description": "List of variable definitions. All combinations are generated.",
-              "items": {
-                "type": "object",
-                "additionalProperties": true
+              "type": "object",
+              "description": "Maps each variable name to a comma-separated value string. All combinations (cartesian product) of the values are generated.",
+              "additionalProperties": {
+                "type": "string"
               }
             }
           }
@@ -902,11 +905,10 @@
           "additionalProperties": false,
           "properties": {
             "union": {
-              "type": "array",
-              "description": "List of variable definitions with the same key. Their value lists are concatenated.",
-              "items": {
-                "type": "object",
-                "additionalProperties": true
+              "type": "object",
+              "description": "Maps each variable name to a comma-separated value string. The value lists are iterated in parallel (zipped); duplicate combinations are dropped.",
+              "additionalProperties": {
+                "type": "string"
               }
             }
           }
@@ -1060,13 +1062,8 @@
           "description": "Emit value as JSON. Append indent as modifier: 'json.2'."
         },
         "eval": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
+          "type": "string",
+          "description": "Direct-feed (command context): evaluate a Python expression and emit the result. String value is the expression."
         },
         "import": {
           "type": "string",
@@ -1575,7 +1572,63 @@
       "type": "array",
       "description": "List of pipe definitions that route and transform named streams.",
       "items": {
-        "$ref": "#/definitions/PipeItem"
+        "oneOf": [
+          {
+            "$ref": "#/definitions/PipeItem"
+          },
+          {
+            "$ref": "#/definitions/AutoPipeNode"
+          }
+        ]
+      }
+    },
+    "AutoPipeNode": {
+      "type": "object",
+      "description": "Auto generator inside a 'pipes:' list. Expands 'template' once per generated row (auto: range/args/data); ${.value}, ${.index}, ${.count} are substituted per row, producing dynamic pipe entries.",
+      "required": [
+        "auto",
+        "template"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "auto": {
+          "description": "Auto generator type. 'template:' items are PipeItems.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "args",
+                "range",
+                "data"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/AutoSourceSpec"
+              },
+              "minItems": 2
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ]
+        },
+        "template": {
+          "description": "Pipe entry or entries expanded per generated row.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/PipeItem"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/PipeItem"
+              }
+            }
+          ]
+        }
       }
     },
     "PipeItem": {
