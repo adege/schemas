@@ -1,0 +1,1690 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WOW Actions File",
+  "description": "A standalone YAML list of action items. Included into task files via '<yamllist>: path' inside an 'actions:' list, or nested within another actions file. Enables composability: large action trees can be split into focused, reusable files.",
+  "type": "array",
+  "items": {
+    "$ref": "#/definitions/ActionItem"
+  },
+  "definitions": {
+    "TemplateExpr": {
+      "type": "string",
+      "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[\\^\\]]+\\])$",
+      "description": "A lone template expression: ${var}, +{export}, or +[stream]."
+    },
+    "Task": {
+      "type": "object",
+      "description": "A single WOW task. At run time, WOW resolves the pool, builds variables, and executes the action tree.",
+      "additionalProperties": false,
+      "required": [
+        "actions"
+      ],
+      "properties": {
+        "task": {
+          "type": "string",
+          "description": "Human-readable task name. Injected as variable 'task_name'. Optional \u2014 defaults to empty string."
+        },
+        "description": {
+          "type": "string",
+          "description": "Task description. Can be multi-line. Injected as variable 'task_description'."
+        },
+        "out": {
+          "type": "string",
+          "description": "Base output path for task artifacts (relative to the tasks directory). Resulting path: ${out}/${prefix}/${tag}[/${subdir}]. Requires --prefix/-p at runtime."
+        },
+        "subdir": {
+          "type": "string",
+          "description": "Sub-directory appended to the output path. Defaults to the 1-based task index when multiple tasks are in the file; omitted for single-task files."
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "Default endpoint name for all actions in this task. Must be defined in 'pool:' or be the built-in 'localhost'. Default: 'localhost'."
+        },
+        "via": {
+          "type": "string",
+          "description": "Default access protocol for all actions. One of: 'native', 'ssh', 'http', 'serial', 'namespace'. Default: 'native'."
+        },
+        "nolock": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Disable endpoint locking for this task. Default: false.",
+          "default": false
+        },
+        "variables": {
+          "$ref": "#/definitions/Variables",
+          "description": "Task-level variables available throughout all actions. Substituted via ${name}. Can be overridden by action-level variables or CLI: -V name value."
+        },
+        "pool": {
+          "type": "array",
+          "description": "Endpoint pool. Each entry is a named group of endpoints sharing a connection spec. Groups with the same name are merged.",
+          "items": {
+            "$ref": "#/definitions/PoolEntry"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "description": "Top-level action list for this task.",
+          "items": {
+            "$ref": "#/definitions/ActionItem"
+          }
+        },
+        "<yamldict>": {
+          "type": "string",
+          "description": "WAML merge directive. The mapping in this YAML file is merged into the task object at load time. Use to split task-level configuration (pool:, variables:, endpoint:, etc.) across files."
+        }
+      }
+    },
+    "Variables": {
+      "type": "object",
+      "description": "Key-value variable map. Values may be strings, numbers, booleans, lists, or dicts. String values support ${var} substitution. Type-suffix keys generate indexed access: name.csv, name.list, name.map.",
+      "additionalProperties": true
+    },
+    "PoolEntry": {
+      "type": "object",
+      "description": "One equipment group in the pool. Duplicate group names across pool entries are merged (spec and ignores must match).",
+      "required": [
+        "group"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "group": {
+          "type": "string",
+          "description": "Group name. Referenced as 'endpoint:' value in actions."
+        },
+        "spec": {
+          "$ref": "#/definitions/Spec"
+        },
+        "endpoints": {
+          "type": "array",
+          "description": "Endpoint definitions in this group.",
+          "items": {
+            "$ref": "#/definitions/Endpoint"
+          }
+        },
+        "ignores": {
+          "type": "array",
+          "description": "Endpoint names to exclude from this group entirely.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "variables": {
+          "$ref": "#/definitions/Variables",
+          "description": "Group-level variables substituted into endpoint definitions at pool-build time."
+        }
+      }
+    },
+    "Spec": {
+      "type": "object",
+      "description": "Endpoint validation rules and flat-promotion control.",
+      "additionalProperties": false,
+      "properties": {
+        "required": {
+          "type": "object",
+          "description": "Map of required endpoint field names to a validation constraint: a regex string or an explicit list of allowed values. 'name' is always required implicitly.",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Regex pattern the field value must fully match."
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Explicit list of allowed values."
+              }
+            ]
+          }
+        },
+        "excludes": {
+          "type": "array",
+          "description": "Fields excluded from flat variable promotion. Still accessible via dot-path: ${EndpointName.field}. 'viae' is always excluded regardless of this list.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "major-key": {
+          "type": "string",
+          "description": "The required field used as secondary grouping key. Defaults to the first required field other than 'name'."
+        }
+      }
+    },
+    "Endpoint": {
+      "type": "object",
+      "description": "An endpoint (device or host). All fields become endpoint variables accessible as ${field} (flat-promoted) or ${EndpointName.field} (dot-path).",
+      "required": [
+        "name"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique endpoint name within its group. Must satisfy the 'name' regex in spec."
+        },
+        "viae": {
+          "type": "object",
+          "description": "Connection back-ends keyed by via name ('ssh', 'http', 'serial', 'native', 'namespace'). Always excluded from flat promotion.",
+          "additionalProperties": {
+            "$ref": "#/definitions/ViaConfig"
+          }
+        }
+      }
+    },
+    "ViaConfig": {
+      "type": "object",
+      "description": "Per-transport connection parameters.",
+      "additionalProperties": true,
+      "properties": {
+        "addr": {
+          "type": "string",
+          "description": "Host address or IP."
+        },
+        "port": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Port number."
+        },
+        "user": {
+          "type": "string",
+          "description": "Login username."
+        },
+        "password": {
+          "type": "string",
+          "description": "Login password."
+        },
+        "key": {
+          "type": "string",
+          "description": "Path to private key file (SSH)."
+        },
+        "protocol": {
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "http",
+                "https"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Protocol (HTTP via only)."
+        },
+        "nolock": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Disable connection locking for this transport. Default: false.",
+          "default": false
+        }
+      }
+    },
+    "ActionItem": {
+      "description": "One entry in an actions list. Can be: a bare shell-command string; a structured action/auto/direct-feed node dict; or a WAML include directive.",
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "Shorthand: executed as a shell command on the active via."
+        },
+        {
+          "$ref": "#/definitions/ActionNode"
+        },
+        {
+          "$ref": "#/definitions/WamlDirective"
+        }
+      ]
+    },
+    "WamlDirective": {
+      "type": "object",
+      "description": "WAML include directive. Processed at load time before any action runs. '<yamllist>:' splices a YAML list file into the current list; '<yamldict>:' merges a YAML mapping file into the current mapping.",
+      "additionalProperties": false,
+      "properties": {
+        "<yamllist>": {
+          "type": "string",
+          "description": "Path to a YAML file whose top-level list is spliced in place of this directive."
+        },
+        "<yamldict>": {
+          "type": "string",
+          "description": "Path to a YAML file whose top-level mapping is merged into the parent node."
+        },
+        "variables": {
+          "$ref": "#/definitions/Variables",
+          "description": "Variables substituted into the included file before it is spliced."
+        },
+        "enabled": {
+          "description": "If false, the included content is entirely omitted.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "ActionNode": {
+      "type": "object",
+      "description": "A structured action node. Must have exactly one payload key: 'actions', 'commands', 'files', 'http-actions', 'snippets' (list payloads) or a direct-feed key ('text', 'command', etc.). Auto nodes use 'auto:' in place of a payload key and require 'template:'.",
+      "additionalProperties": true,
+      "properties": {
+        "action": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Display label shown as a section header in output. Set to null to suppress the header. Injected as variable 'action_name'."
+        },
+        "enabled": {
+          "description": "Enable/disable this node. Boolean or Python expression string.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "stoppable": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Mark this action as a soft-stop exit point (first SIGINT). The action itself completes; subsequent siblings are skipped and the stop propagates up.",
+          "default": false
+        },
+        ".on-stop": {
+          "$ref": "#/definitions/ActionNode",
+          "description": "Handler action that runs when soft-stop is triggered while this action is executing. Runs at most once per invocation. Streams it writes are visible to parent pipes via 'sources:'."
+        },
+        "parallel": {
+          "description": "Run child actions concurrently in separate threads. Boolean or Python expression.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": false
+        },
+        "vertical": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Split tmux panes side-by-side (true) instead of stacked (false) when 'parallel: true'. Default: false.",
+          "default": false
+        },
+        "percent": {
+          "description": "Tmux pane size as a percentage of parent pane when 'parallel: true'. Values across siblings are relative.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ]
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "Endpoint name for this action. Overrides the value inherited from parent. Must be defined in the task pool or be 'localhost'."
+        },
+        "via": {
+          "description": "Access protocol. String: named via. List: first available wins. Dict: anonymous inline via \u2014 {ViaType: {params}} \u2014 requires no named endpoint.",
+          "oneOf": [
+            {
+              "type": "string",
+              "description": "Named via: 'native', 'ssh', 'http', 'serial', or 'namespace'."
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Try each via in order; use first available."
+            },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "description": "Inline anonymous via: {ssh: {addr: host, port: 22}}."
+            }
+          ]
+        },
+        "quite": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Suppress all output from this action and its children.",
+          "default": false
+        },
+        "verbose": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Emit extra diagnostics: via name, status codes, pipe/filter flow.",
+          "default": false
+        },
+        "check": {
+          "description": "Propagate child exit-status failures to this action's status. Boolean or Python expression.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": true
+        },
+        "indent": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Indent child output under this action's header. Default: true.",
+          "default": true
+        },
+        "stop-on-fail": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Stop remaining sibling actions if this action fails.",
+          "default": false
+        },
+        "stream": {
+          "type": "string",
+          "description": "Override this action's default output stream name. Siblings can read it with +[stream-name]."
+        },
+        "http-params": {
+          "type": "object",
+          "description": "Default HTTP parameters inherited by all http-actions in this subtree. Can also be used to make anonymous HTTP calls (endpoint is then ignored).",
+          "additionalProperties": true
+        },
+        "variables": {
+          "$ref": "#/definitions/Variables",
+          "description": "Action-scoped variables available to this node and its children. Override task-level variables of the same name."
+        },
+        "filters": {
+          "$ref": "#/definitions/FilterList",
+          "description": "Shorthand filter chain applied to this action's default output stream. Equivalent to a single pipe with no stream or sources override."
+        },
+        "pipes": {
+          "$ref": "#/definitions/PipeList",
+          "description": "Named filter chains applied to one or more of this action's output streams."
+        },
+        "repeat": {
+          "$ref": "#/definitions/Repeat"
+        },
+        "actions": {
+          "type": "array",
+          "description": "Nested child action list.",
+          "items": {
+            "$ref": "#/definitions/ActionItem"
+          }
+        },
+        "commands": {
+          "type": "array",
+          "description": "List of command items executed sequentially on the active via.",
+          "items": {
+            "$ref": "#/definitions/CommandItem"
+          }
+        },
+        "files": {
+          "type": "array",
+          "description": "List of file-transfer / file-system operations.",
+          "items": {
+            "$ref": "#/definitions/FileItem"
+          }
+        },
+        "http-actions": {
+          "type": "array",
+          "description": "List of HTTP request items.",
+          "items": {
+            "$ref": "#/definitions/HttpActionItem"
+          }
+        },
+        "snippets": {
+          "type": "array",
+          "description": "List of Python snippet items.",
+          "items": {
+            "$ref": "#/definitions/SnippetItem"
+          }
+        },
+        "auto": {
+          "description": "Auto-node generator. Expands 'template:' once per row produced by the data source. String form: 'args', 'range', or 'data'. List form: multiple sources zipped together (all sources must yield the same row count or zip to the shortest).",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "args",
+                "range",
+                "data"
+              ],
+              "description": "Single-source auto node type."
+            },
+            {
+              "type": "array",
+              "description": "Multi-source auto node. Each item declares one source. They are zipped: iteration N uses row N from every source.",
+              "minItems": 2,
+              "items": {
+                "$ref": "#/definitions/AutoSourceSpec"
+              }
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$",
+              "description": "Template expression resolving to one of the valid type strings."
+            }
+          ]
+        },
+        "template": {
+          "description": "Template expanded for each auto-node row. A list of ActionItems (when inside 'actions:') or CommandItems (when inside 'commands:').",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ActionNode"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ActionItem"
+              }
+            }
+          ]
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Prefix for auto-node loop counter exports: ${prefix.index}, ${prefix.count}. Does NOT prefix field variable names from data files."
+        },
+        "index": {
+          "description": "Starting value for the loop index. Default: 1.",
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ]
+        },
+        "offset": {
+          "description": "Index offset added to range/data indices. Default: 0.",
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ]
+        },
+        "args": {
+          "type": "array",
+          "description": "For 'auto: args'. List of argument definitions. Each item maps a variable name to a comma-separated value string. Special wrapper keys 'permutation:' and 'union:' group multiple variables.",
+          "items": {
+            "$ref": "#/definitions/AutoArgsItem"
+          }
+        },
+        "x2args": {
+          "type": "array",
+          "description": "For 'auto: args'. Second-expansion argument nodes. Substituted after the first 'args' expansion to produce derived variables.",
+          "items": {
+            "$ref": "#/definitions/AutoArgsItem"
+          }
+        },
+        "eval": {
+          "description": "Direct-feed (command context): evaluate a Python expression and emit the result. String value is the expression.",
+          "type": "string"
+        },
+        "delimiter": {
+          "type": "string",
+          "description": "For 'auto: args'. Delimiter used when splitting argument value strings. Default: ','.",
+          "default": ","
+        },
+        "range": {
+          "description": "For 'auto: range'. Range spec: an integer N gives range(N); [stop], [start, stop] or [start, stop, step] mirrors Python's range(). Each value may be an integer or an expression string (which may contain ${var}/+{export} templates) evaluated to an integer, e.g. \"${start}-1\".",
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "minItems": 1,
+              "maxItems": 3
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "data.csv": {
+          "type": "string",
+          "description": "For 'auto: data'. Path to a CSV data file (relative to the wow2 root)."
+        },
+        "data.yaml": {
+          "type": "string",
+          "description": "For 'auto: data'. Path to a YAML data file (relative to the wow2 root)."
+        },
+        "range.ie": {
+          "type": "string",
+          "description": "For 'auto: data'. Like 'range' but excludes empty rows before index selection ('ie' = ignore-empty)."
+        },
+        "filter": {
+          "type": "string",
+          "description": "For 'auto: data'. Python expression evaluated per data row. {} is the row dict; {.index} is the 0-based row index; [:key:] is dict-key shorthand. Rows where the expression is falsy are excluded."
+        },
+        "filter.var": {
+          "type": "string",
+          "description": "For 'auto: data'. Variable name whose current value is used as the filter expression instead of an inline 'filter:' string."
+        },
+        "filter.range": {
+          "type": "string",
+          "description": "For 'auto: data'. Range applied to post-filter rows (e.g. '0:5' or '2,4,6')."
+        },
+        "filter.offset": {
+          "description": "For 'auto: data'. Index offset for 'filter.range'. Default: 0.",
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ]
+        },
+        "command": {
+          "type": "string",
+          "description": "Direct-feed: a shell command string. Promotes this dict into a commands action."
+        },
+        "text": {
+          "description": "Direct-feed: emits the value as a literal string stream."
+        },
+        "etext": {
+          "description": "Direct-feed: emits repr() of the value."
+        },
+        "bool": {
+          "description": "Direct-feed: emits bool(value)."
+        },
+        "int": {
+          "description": "Direct-feed: emits int(value[, base]). Append base as modifier: 'int.16' for hex."
+        },
+        "json": {
+          "description": "Direct-feed: emits the value serialised as JSON. Append indent as modifier: 'json.2'."
+        },
+        "import": {
+          "type": "string",
+          "description": "Direct-feed: reads the named Exports key (+{name}) into the stream."
+        },
+        "getstream": {
+          "type": "string",
+          "description": "Direct-feed: reads the named stream (+[name]) into the stream."
+        },
+        "export": {
+          "type": "string",
+          "description": "Exports key under which to store the output. Also exposes '<key>.stderr' and '<key>.status'."
+        },
+        "http-action": {
+          "$ref": "#/definitions/HttpActionItem",
+          "description": "Direct-feed: a single HTTP request. Promotes this dict into an http-actions action."
+        },
+        "file": {
+          "$ref": "#/definitions/FileItem",
+          "description": "Direct-feed: a single file operation. Promotes this dict into a files action."
+        },
+        "snippet": {
+          "description": "Direct-feed: a Python snippet. Value is a path to a .py file or an inline snippet dict with 'code:'.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/SnippetItem"
+            }
+          ]
+        }
+      }
+    },
+    "AutoSourceSpec": {
+      "type": "object",
+      "description": "One source entry in a multi-source 'auto: [...]' list. Declares the data source type via its primary key and optional per-source modifiers. All sources are zipped by row index.",
+      "additionalProperties": true,
+      "properties": {
+        "args": {
+          "type": "array",
+          "description": "CSV/list argument source. Items map variable names to comma-separated values.",
+          "items": {
+            "$ref": "#/definitions/AutoArgsItem"
+          }
+        },
+        "x2args": {
+          "type": "array",
+          "description": "Second-expansion argument nodes for this args source.",
+          "items": {
+            "$ref": "#/definitions/AutoArgsItem"
+          }
+        },
+        "eval": {
+          "type": "array",
+          "description": "Derived-variable expressions computed from this source's row. Only meaningful on the first source entry.",
+          "items": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "delimiter": {
+          "type": "string",
+          "description": "Delimiter for splitting arg value strings. Default: ','.",
+          "default": ","
+        },
+        "range": {
+          "description": "Numeric range source. Same spec as single-source 'range:' — integers or expression strings evaluated to integers.",
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "minItems": 1,
+              "maxItems": 3
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "data.yaml": {
+          "type": "string",
+          "description": "Path to a YAML data file."
+        },
+        "data.csv": {
+          "type": "string",
+          "description": "Path to a CSV data file."
+        },
+        "filter": {
+          "type": "string",
+          "description": "Row filter expression for data sources."
+        },
+        "filter.range": {
+          "type": "string",
+          "description": "Range applied to post-filter rows."
+        },
+        "filter.offset": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Index offset for filter.range."
+        },
+        "filter.var": {
+          "type": "string",
+          "description": "Variable name whose value is used as the filter expression."
+        },
+        "range.ie": {
+          "type": "string",
+          "description": "Range with ignore-empty semantics for data sources."
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Prefix for this source's loop counter exports: ${prefix.index}, ${prefix.count}."
+        }
+      }
+    },
+    "AutoArgsItem": {
+      "description": "One item in an 'args:' list. Either a direct variable assignment or a special grouping construct.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Direct assignment: maps a variable name to a comma-separated value string or a YAML list.",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          }
+        },
+        {
+          "type": "object",
+          "description": "Permutation grouping: produces the cartesian product of all variable values.",
+          "required": [
+            "permutation"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "permutation": {
+              "type": "object",
+              "description": "Maps each variable name to a comma-separated value string. All combinations (cartesian product) of the values are generated.",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "description": "Union grouping: concatenates multiple value lists for the same variable.",
+          "required": [
+            "union"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "union": {
+              "type": "object",
+              "description": "Maps each variable name to a comma-separated value string. The value lists are iterated in parallel (zipped); duplicate combinations are dropped.",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Repeat": {
+      "type": "object",
+      "description": "Repeat settings. Keys NOT starting with '.' are written to Exports on every iteration and accessible via +{key}. Control keys start with '.'.",
+      "additionalProperties": true,
+      "properties": {
+        ".count": {
+          "description": "Maximum iteration count. Use 'inf' for indefinite. Default: inf.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        ".until": {
+          "type": "string",
+          "description": "Stop-condition Python expression evaluated after each iteration. References Exports via +{name}. Stops when truthy."
+        },
+        ".interval": {
+          "description": "Minimum seconds between cycle starts. How the next start is scheduled depends on '.strategy'.",
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ]
+        },
+        ".strategy": {
+          "description": "'normal': next cycle starts immediately after the previous finishes (or after any remaining interval time). 'strict': next cycle starts after the remaining interval slot elapses even if the previous cycle overran. Default: 'normal'.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "normal",
+                "strict"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "default": "normal"
+        },
+        ".check": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Propagate each iteration's exit status to the parent action. Default: true.",
+          "default": true
+        },
+        ".log": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Accumulate output from all iterations (true) or keep only the last (false). Default: true.",
+          "default": true
+        },
+        ".stoppable": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Allow soft-stop (SIGINT) to break out of the repeat loop. Default: false.",
+          "default": false
+        },
+        ".prefix": {
+          "type": "string",
+          "description": "Prefix for loop-counter Exports: +{prefix.index}, +{prefix.count}. Prevents collisions in nested repeat loops."
+        },
+        ".index": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Starting value for the loop index export. Default: 1.",
+          "default": 1
+        }
+      }
+    },
+    "CommandItem": {
+      "description": "One entry in a 'commands:' list. A plain string is a shell command. A dict has one feed key plus optional modifiers. Auto nodes can also appear here (template items are then CommandItems).",
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "Shell command string."
+        },
+        {
+          "$ref": "#/definitions/CommandNode"
+        },
+        {
+          "$ref": "#/definitions/WamlDirective"
+        }
+      ]
+    },
+    "CommandNode": {
+      "type": "object",
+      "description": "A structured command-feed dict. Exactly one feed key must be present. The key may carry a dot-suffix modifier ('int.16', 'json.2'). Auto node keys ('auto:', 'template:') are also valid here.",
+      "additionalProperties": true,
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "Shell command executed on the active via."
+        },
+        "text": {
+          "description": "Emit the value as a literal string."
+        },
+        "etext": {
+          "description": "Emit repr() of the value (escaped string)."
+        },
+        "bool": {
+          "description": "Emit bool(value) as a Python bool."
+        },
+        "int": {
+          "description": "Emit int(value[, base]). Append base as modifier: 'int.16' for hex."
+        },
+        "json": {
+          "description": "Emit value as JSON. Append indent as modifier: 'json.2'."
+        },
+        "eval": {
+          "type": "string",
+          "description": "Direct-feed (command context): evaluate a Python expression and emit the result. String value is the expression."
+        },
+        "import": {
+          "type": "string",
+          "description": "Read an Exports key (+{name}) and emit its value."
+        },
+        "getstream": {
+          "type": "string",
+          "description": "Read a named stream (+[name]) and emit its value."
+        },
+        "export": {
+          "type": "string",
+          "description": "Exports key to store this command's output under. Also exposes '<key>.stderr' and '<key>.status'."
+        },
+        "stoppable": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Allow soft-stop during execution of this command. Default: false.",
+          "default": false
+        },
+        "timeout": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Execution timeout in seconds."
+        },
+        "rw_timeout": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Per-read/write timeout in seconds (SSH via)."
+        },
+        "rw_retries": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Read/write retry count before failing (SSH via)."
+        },
+        "stream": {
+          "type": "string",
+          "description": "Output stream name for this command's result."
+        },
+        "filters": {
+          "$ref": "#/definitions/FilterList"
+        },
+        "pipes": {
+          "$ref": "#/definitions/PipeList"
+        },
+        "enabled": {
+          "description": "Enable/disable this command.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "variables": {
+          "$ref": "#/definitions/Variables"
+        },
+        "auto": {
+          "description": "Auto generator within a commands list. 'template:' items are CommandItems.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "args",
+                "range",
+                "data"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/AutoSourceSpec"
+              },
+              "minItems": 2
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ]
+        },
+        "template": {
+          "description": "Template expanded per auto-node row. Items here are CommandItems.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/CommandNode"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/CommandItem"
+              }
+            }
+          ]
+        },
+        "prefix": {
+          "type": "string"
+        },
+        "index": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "offset": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AutoArgsItem"
+          }
+        },
+        "x2args": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AutoArgsItem"
+          }
+        },
+        "delimiter": {
+          "type": "string"
+        },
+        "range": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "array"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "data.csv": {
+          "type": "string"
+        },
+        "data.yaml": {
+          "type": "string"
+        },
+        "filter": {
+          "type": "string"
+        },
+        "filter.var": {
+          "type": "string"
+        },
+        "filter.range": {
+          "type": "string"
+        },
+        "filter.offset": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "range.ie": {
+          "type": "string"
+        }
+      }
+    },
+    "FileItem": {
+      "type": "object",
+      "description": "A file-transfer or file-system operation on the active via.",
+      "required": [
+        "method"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "get",
+                "put",
+                "remove",
+                "mkdir",
+                "rmdir",
+                "chmod",
+                "upgrade"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Operation type."
+        },
+        "rpath": {
+          "type": "string",
+          "description": "Remote path (get/put)."
+        },
+        "lpath": {
+          "type": "string",
+          "description": "Local path (get/put)."
+        },
+        "path": {
+          "type": "string",
+          "description": "Target path (remove/mkdir/rmdir/chmod/upgrade)."
+        },
+        "mode": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "File mode as an octal integer (chmod)."
+        },
+        "check.version": {
+          "type": "string",
+          "description": "Command that reports the installed version (upgrade). Exit 0 means upgrade is needed."
+        },
+        "on.up-to-date": {
+          "type": "string",
+          "description": "Command to run when already up-to-date (upgrade)."
+        },
+        "on.success": {
+          "type": "string",
+          "description": "Command to run after a successful upgrade."
+        },
+        "on.fail": {
+          "type": "string",
+          "description": "Command to run after a failed upgrade."
+        }
+      }
+    },
+    "HttpActionItem": {
+      "type": "object",
+      "description": "One HTTP request.",
+      "required": [
+        "method",
+        "path"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "method": {
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH",
+                "HEAD",
+                "OPTIONS"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ]
+        },
+        "path": {
+          "type": "string",
+          "description": "URL path relative to the via's base address."
+        },
+        "protocol": {
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "http",
+                "https"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Override the via's default protocol."
+        },
+        "addr": {
+          "type": "string",
+          "description": "Override the via's host address."
+        },
+        "port": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Override the via's port."
+        },
+        "always-login": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Force a fresh login before every request. Default: false.",
+          "default": false
+        },
+        "auth": {
+          "type": "object",
+          "description": "Authentication parameters passed to the via.",
+          "additionalProperties": true
+        },
+        "retries": {
+          "oneOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Retry attempts on failure."
+        },
+        "retry-interval": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ],
+          "description": "Seconds between retries."
+        },
+        "args": {
+          "type": "object",
+          "description": "Request parameters passed to via.request(). Append '.json' to a key to serialise its value as JSON before sending.",
+          "additionalProperties": true
+        },
+        "stream": {
+          "type": "string",
+          "description": "Output stream name for this request's response."
+        },
+        "filters": {
+          "$ref": "#/definitions/FilterList"
+        },
+        "pipes": {
+          "$ref": "#/definitions/PipeList"
+        }
+      }
+    },
+    "SnippetItem": {
+      "type": "object",
+      "description": "A Python snippet. The script must define a 'wowmain' function. Its return value is written to the output stream.",
+      "required": [
+        "code"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Inline Python code or path to a .py file."
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Display name in verbose output.",
+          "default": "<snippet>"
+        },
+        "args": {
+          "type": "array",
+          "description": "Positional arguments passed to wowmain(). May include +[stream] expressions."
+        },
+        "kwargs": {
+          "type": "object",
+          "description": "Keyword arguments passed to wowmain().",
+          "additionalProperties": true
+        },
+        "stream": {
+          "type": "string",
+          "description": "Output stream name for this snippet's result."
+        },
+        "filters": {
+          "$ref": "#/definitions/FilterList"
+        },
+        "pipes": {
+          "$ref": "#/definitions/PipeList"
+        }
+      }
+    },
+    "FilterList": {
+      "type": "array",
+      "description": "Ordered list of filter operations applied to the stream in sequence.",
+      "items": {
+        "$ref": "#/definitions/FilterItem"
+      }
+    },
+    "FilterItem": {
+      "description": "One filter step. A string names a filter method ('ClassName.method'). A dict is a filter call with arguments or an if/elif/else conditional block.",
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Filter method: 'ClassName.method' (e.g. 'TextFilter.strip', 'JsonFilter.get_path') or a Python builtin (e.g. 'str'). Applied with no arguments."
+        },
+        {
+          "type": "object",
+          "description": "Filter call with arguments, or a conditional block. For a call: key is 'ClassName.method', value is the argument(s). For a conditional: keys are 'if', 'elif', 'elif.N', 'else'.",
+          "additionalProperties": true,
+          "properties": {
+            "if": {
+              "$ref": "#/definitions/FilterBranch"
+            },
+            "elif": {
+              "$ref": "#/definitions/FilterBranch"
+            },
+            "else": {
+              "$ref": "#/definitions/FilterElseBranch"
+            }
+          }
+        }
+      ]
+    },
+    "FilterBranch": {
+      "type": "object",
+      "description": "Conditional filter branch (if / elif). Executes its filter list when 'condition' is truthy.",
+      "required": [
+        "condition",
+        "filters"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "condition": {
+          "type": "string",
+          "description": "Python expression. {} is replaced with the current stream value. Truthy \u2192 branch executes."
+        },
+        "filters": {
+          "$ref": "#/definitions/FilterList"
+        }
+      }
+    },
+    "FilterElseBranch": {
+      "type": "object",
+      "description": "The else branch of a conditional filter \u2014 always executes if no preceding if/elif matched.",
+      "required": [
+        "filters"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "filters": {
+          "$ref": "#/definitions/FilterList"
+        }
+      }
+    },
+    "PipeList": {
+      "type": "array",
+      "description": "List of pipe definitions that route and transform named streams.",
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/definitions/PipeItem"
+          },
+          {
+            "$ref": "#/definitions/AutoPipeNode"
+          }
+        ]
+      }
+    },
+    "AutoPipeNode": {
+      "type": "object",
+      "description": "Auto generator inside a 'pipes:' list. Expands 'template' once per generated row (auto: range/args/data); ${.value}, ${.index}, ${.count} are substituted per row, producing dynamic pipe entries.",
+      "required": [
+        "auto",
+        "template"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "auto": {
+          "description": "Auto generator type. 'template:' items are PipeItems.",
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "args",
+                "range",
+                "data"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/AutoSourceSpec"
+              },
+              "minItems": 2
+            },
+            {
+              "type": "string",
+              "pattern": "^(\\$\\{[^}]+\\}|\\+\\{[^}]+\\}|\\+\\[[^\\]]+\\])$"
+            }
+          ]
+        },
+        "template": {
+          "description": "Pipe entry or entries expanded per generated row.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/PipeItem"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/PipeItem"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "PipeItem": {
+      "type": "object",
+      "description": "A single pipe. Reads from 'sources', applies 'filters', writes to 'stream'. Nested 'pipes' chain further transformations on the output stream.",
+      "additionalProperties": false,
+      "properties": {
+        "stream": {
+          "type": "string",
+          "description": "Output stream name. '*' = pass-through mode: sources are forwarded unchanged (filters and nested pipes not allowed in this mode)."
+        },
+        "sources": {
+          "$ref": "#/definitions/PipeSources"
+        },
+        "filters": {
+          "$ref": "#/definitions/FilterList"
+        },
+        "pipes": {
+          "$ref": "#/definitions/PipeList"
+        },
+        "enabled": {
+          "description": "Enable/disable this pipe.",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "PipeSources": {
+      "description": "Input stream selector for a pipe. String: one stream name or '*' for all. List: explicit stream names. Dict: dynamic selection by name pattern.",
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Single stream name, or '*' to select all available streams."
+        },
+        {
+          "type": "array",
+          "description": "Explicit list of stream names.",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "type": "object",
+          "description": "Dynamic stream selection. Exactly one selector key must be present.",
+          "additionalProperties": false,
+          "properties": {
+            "startswith": {
+              "type": "string",
+              "description": "Select streams whose names start with this string."
+            },
+            "endswith": {
+              "type": "string",
+              "description": "Select streams whose names end with this string."
+            },
+            "contains": {
+              "type": "string",
+              "description": "Select streams whose names contain this string."
+            },
+            "regex": {
+              "type": "string",
+              "description": "Select streams matching this regex (re.search; prefix with ^ to anchor)."
+            },
+            "range": {
+              "description": "Generate stream names from 'template' for indices in this range.",
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  },
+                  "minItems": 1,
+                  "maxItems": 3
+                }
+              ]
+            },
+            "template": {
+              "type": "string",
+              "description": "Stream name template used with 'range'. Supports ${sources.value}, ${sources.index}, ${sources.count}."
+            }
+          }
+        }
+      ]
+    }
+  }
+}
