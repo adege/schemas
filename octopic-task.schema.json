@@ -70,7 +70,7 @@
         },
         "pool": {
           "type": "array",
-          "description": "Endpoint pool. Each entry is a named group of endpoints sharing a connection spec. Groups with the same name are merged.",
+          "description": "Endpoint pool. Each entry is a named fleet of endpoints sharing a connection spec. Fleets with the same name are merged.",
           "items": {
             "$ref": "#/definitions/PoolEntry"
           }
@@ -127,36 +127,36 @@
     },
     "PoolEntry": {
       "type": "object",
-      "description": "One equipment group in the pool. Duplicate group names across pool entries are merged (spec and ignores must match).",
+      "description": "One endpoint fleet in the pool. Duplicate fleet names across pool entries are merged (spec and ignores must match).",
       "required": [
-        "group"
+        "fleet"
       ],
       "additionalProperties": true,
       "properties": {
-        "group": {
+        "fleet": {
           "type": "string",
-          "description": "Group name. Referenced as 'endpoint:' value in actions."
+          "description": "Fleet name. Referenced by 'endpoint:'/'fleet:' values in actions."
         },
         "spec": {
           "$ref": "#/definitions/Spec"
         },
         "endpoints": {
           "type": "array",
-          "description": "Endpoint definitions in this group.",
+          "description": "Endpoint definitions in this fleet.",
           "items": {
             "$ref": "#/definitions/Endpoint"
           }
         },
         "ignores": {
           "type": "array",
-          "description": "Endpoint names to exclude from this group entirely.",
+          "description": "Endpoint names to exclude from this fleet entirely.",
           "items": {
             "type": "string"
           }
         },
         "variables": {
           "$ref": "#/definitions/Variables",
-          "description": "Group-level variables substituted into endpoint definitions at pool-build time."
+          "description": "Fleet-level variables substituted into endpoint definitions at pool-build time."
         }
       }
     },
@@ -207,7 +207,7 @@
       "properties": {
         "name": {
           "type": "string",
-          "description": "Unique endpoint name within its group. Must satisfy the 'name' regex in spec."
+          "description": "Unique endpoint name within its fleet. Must satisfy the 'name' regex in spec."
         },
         "viae": {
           "type": "object",
