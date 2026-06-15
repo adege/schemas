@@ -875,13 +875,11 @@
         },
         {
           "type": "object",
-          "description": "Permutation grouping: produces the cartesian product of all variable values.",
-          "required": [
-            "permutation"
-          ],
+          "description": "Permutation grouping (optionally with a dot-suffix flag, e.g. 'permutation.ie' = ignore empty values): produces the cartesian product of all variable values.",
+          "minProperties": 1,
           "additionalProperties": false,
-          "properties": {
-            "permutation": {
+          "patternProperties": {
+            "^permutation(\\..+)?$": {
               "type": "object",
               "description": "Maps each variable name to a comma-separated value string. All combinations (cartesian product) of the values are generated.",
               "additionalProperties": {
@@ -892,13 +890,11 @@
         },
         {
           "type": "object",
-          "description": "Union grouping: concatenates multiple value lists for the same variable.",
-          "required": [
-            "union"
-          ],
+          "description": "Union grouping (optionally with a dot-suffix flag, e.g. 'union.ie' = ignore empty values): concatenates multiple value lists for the same variable.",
+          "minProperties": 1,
           "additionalProperties": false,
-          "properties": {
-            "union": {
+          "patternProperties": {
+            "^union(\\..+)?$": {
               "type": "object",
               "description": "Maps each variable name to a comma-separated value string. The value lists are iterated in parallel (zipped); duplicate combinations are dropped.",
               "additionalProperties": {
@@ -1169,10 +1165,10 @@
           ]
         },
         "template": {
-          "description": "Template expanded per auto-node row. Items here are CommandItems.",
+          "description": "Template expanded per auto-node row. Items here are CommandItems (a bare string is a shell command).",
           "oneOf": [
             {
-              "$ref": "#/definitions/CommandNode"
+              "$ref": "#/definitions/CommandItem"
             },
             {
               "type": "array",
@@ -1260,6 +1256,16 @@
         },
         "range.ie": {
           "type": "string"
+        },
+        "eval": {
+          "type": "array",
+          "description": "Per-row evaluated variables: each item maps a new variable name to a Python expression (over the row's args/x2args) evaluated at expansion time.",
+          "items": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -1631,8 +1637,8 @@
       "additionalProperties": false,
       "properties": {
         "stream": {
-          "type": "string",
-          "description": "Output stream name. '*' = pass-through mode: sources are forwarded unchanged (filters and nested pipes not allowed in this mode)."
+          "type": ["string", "null"],
+          "description": "Output stream name. Null/empty = an UNNAMED stream (filters apply to the pipe's input without renaming the output). '*' = pass-through mode: sources are forwarded unchanged (filters and nested pipes not allowed in this mode)."
         },
         "sources": {
           "$ref": "#/definitions/PipeSources"
