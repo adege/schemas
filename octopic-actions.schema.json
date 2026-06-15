@@ -515,29 +515,29 @@
           }
         },
         "commands": {
-          "type": "array",
-          "description": "List of command items executed sequentially on the active via.",
+          "type": ["array", "null"],
+          "description": "List of command items executed sequentially on the active via. Null/empty runs no commands (the engine guards on truthiness); the action's own filters/pipes still apply.",
           "items": {
             "$ref": "#/definitions/CommandItem"
           }
         },
         "files": {
-          "type": "array",
-          "description": "List of file-transfer / file-system operations.",
+          "type": ["array", "null"],
+          "description": "List of file-transfer / file-system operations. Null/empty runs none.",
           "items": {
             "$ref": "#/definitions/FileItem"
           }
         },
         "http-actions": {
-          "type": "array",
-          "description": "List of HTTP request items.",
+          "type": ["array", "null"],
+          "description": "List of HTTP request items. Null/empty runs none.",
           "items": {
             "$ref": "#/definitions/HttpActionItem"
           }
         },
         "snippets": {
-          "type": "array",
-          "description": "List of Python snippet items.",
+          "type": ["array", "null"],
+          "description": "List of Python snippet items. Null/empty runs none.",
           "items": {
             "$ref": "#/definitions/SnippetItem"
           }
