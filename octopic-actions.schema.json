@@ -1052,8 +1052,21 @@
           "description": "Emit value as JSON. Append indent as modifier: 'json.2'."
         },
         "eval": {
-          "type": "string",
-          "description": "Direct-feed (command context): evaluate a Python expression and emit the result. String value is the expression."
+          "description": "Command context. STRING = a direct-feed Python expression evaluated to produce the stream. ARRAY (on an auto node) = a list of {varname: expression} maps that add per-row evaluated variables at expansion time.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          ]
         },
         "import": {
           "type": "string",
@@ -1256,16 +1269,6 @@
         },
         "range.ie": {
           "type": "string"
-        },
-        "eval": {
-          "type": "array",
-          "description": "Per-row evaluated variables: each item maps a new variable name to a Python expression (over the row's args/x2args) evaluated at expansion time.",
-          "items": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
         }
       }
     },
