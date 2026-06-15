@@ -377,6 +377,27 @@
           "type": "string",
           "description": "Endpoint name for this action. Overrides the value inherited from parent. Must be defined in the task pool or be 'localhost'."
         },
+        "endpoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fan-out: run this action's body once per named endpoint. List of endpoint names defined in the task pool. Mutually exclusive with 'fleet:'. Reference the current endpoint in the body with '${endpoint}' / '${endpoint.<field>}'. Defaults to sequential; set 'parallel: true' for concurrent endpoints."
+        },
+        "fleet": {
+          "description": "Fan-out: run this action's body once per endpoint in the named fleet(s). String or list of fleet names from the task pool. Mutually exclusive with 'endpoints:'. Reference the current endpoint in the body with '${endpoint}' / '${endpoint.<field>}'. Defaults to sequential; set 'parallel: true' for concurrent endpoints.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
         "via": {
           "description": "Access protocol. String: named via. List: first available wins. Dict: anonymous inline via \u2014 {ViaType: {params}} \u2014 requires no named endpoint.",
           "oneOf": [
