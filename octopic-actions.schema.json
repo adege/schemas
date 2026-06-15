@@ -42,7 +42,7 @@
         },
         "via": {
           "type": "string",
-          "description": "Default access protocol for all actions. One of: 'native', 'ssh', 'http', 'serial', 'namespace'. Default: 'native'."
+          "description": "Default access protocol for all actions. One of: 'native', 'ssh', 'http', 'serial', 'netns'. Default: 'native'."
         },
         "nolock": {
           "oneOf": [
@@ -184,7 +184,7 @@
         },
         "viae": {
           "type": "object",
-          "description": "Connection back-ends keyed by via name ('ssh', 'http', 'serial', 'native', 'namespace'). Always excluded from flat promotion.",
+          "description": "Connection back-ends keyed by via name ('ssh', 'http', 'serial', 'native', 'netns'). Always excluded from flat promotion.",
           "additionalProperties": {
             "$ref": "#/definitions/ViaConfig"
           }
@@ -403,7 +403,7 @@
           "oneOf": [
             {
               "type": "string",
-              "description": "Named via: 'native', 'ssh', 'http', 'serial', or 'namespace'."
+              "description": "Named via: 'native', 'ssh', 'http', 'serial', or 'netns'."
             },
             {
               "type": "array",
