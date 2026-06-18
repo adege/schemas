@@ -364,7 +364,7 @@
           "description": "Handler action that runs when soft-stop is triggered while this action is executing. Runs at most once per invocation. Streams it writes are visible to parent pipes via 'sources:'."
         },
         "parallel": {
-          "description": "Run child actions concurrently in separate threads. Boolean or Python expression.",
+          "description": "Run this action's CHILD actions concurrently in separate threads \u2014 a container property (only nodes that branch into child actions parallelize). When the action fans out ('endpoints:'/'fleet:'), it governs whether the per-endpoint runs go concurrently. It has NO effect on the node's own direct feeds (commands/files/http-actions/snippets), which always run sequentially \u2014 put feeds in nested 'actions:' to parallelize them. Boolean or Python expression.",
           "oneOf": [
             {
               "type": "boolean"
@@ -446,7 +446,7 @@
             }
           ]
         },
-        "quite": {
+        "quiet": {
           "oneOf": [
             {
               "type": "boolean"
