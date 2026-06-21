@@ -1469,7 +1469,7 @@
     },
     "SnippetItem": {
       "type": "object",
-      "description": "A Python snippet. The script must define a 'octopicmain' function. Its return value is written to the output stream.",
+      "description": "A Python snippet. The script must define a 'octomain' function. Its return value is written to the output stream.",
       "required": [
         "code"
       ],
@@ -1489,11 +1489,11 @@
         },
         "args": {
           "type": "array",
-          "description": "Positional arguments passed to octopicmain(). May include +[stream] expressions."
+          "description": "Positional arguments passed to octomain(). May include +[stream] expressions."
         },
         "kwargs": {
           "type": "object",
-          "description": "Keyword arguments passed to octopicmain().",
+          "description": "Keyword arguments passed to octomain().",
           "additionalProperties": true
         },
         "stream": {
