@@ -298,7 +298,7 @@
     },
     "ActionNode": {
       "type": "object",
-      "description": "A structured action node. Must have exactly one payload key: 'actions', 'commands', 'files', 'http-actions', 'snippets' (list payloads) or a direct-feed key ('text', 'command', etc.). Auto nodes use 'auto:' in place of a payload key and require 'template:'.",
+      "description": "A structured action node. Must have exactly one payload key: 'actions', 'commands', 'files', 'webcalls', 'snippets' (list payloads) or a direct-feed key ('text', 'command', etc.). Auto nodes use 'auto:' in place of a payload key and require 'template:'.",
       "additionalProperties": true,
       "properties": {
         "action": {
@@ -337,7 +337,7 @@
           "description": "Handler action that runs when soft-stop is triggered while this action is executing. Runs at most once per invocation. Streams it writes are visible to parent pipes via 'sources:'."
         },
         "parallel": {
-          "description": "Run this action's CHILD actions concurrently in separate threads \u2014 a container property (only nodes that branch into child actions parallelize). When the action fans out ('endpoints:'/'fleet:'), it governs whether the per-endpoint runs go concurrently. It has NO effect on the node's own direct feeds (commands/files/http-actions/snippets), which always run sequentially \u2014 put feeds in nested 'actions:' to parallelize them. Boolean or Python expression.",
+          "description": "Run this action's CHILD actions concurrently in separate threads \u2014 a container property (only nodes that branch into child actions parallelize). When the action fans out ('endpoints:'/'fleet:'), it governs whether the per-endpoint runs go concurrently. It has NO effect on the node's own direct feeds (commands/files/webcalls/snippets), which always run sequentially \u2014 put feeds in nested 'actions:' to parallelize them. Boolean or Python expression.",
           "oneOf": [
             {
               "type": "boolean"
@@ -489,7 +489,7 @@
         },
         "http-params": {
           "type": "object",
-          "description": "Default HTTP parameters inherited by all http-actions in this subtree. Can also be used to make anonymous HTTP calls (endpoint is then ignored).",
+          "description": "Default HTTP parameters inherited by all webcalls in this subtree. Can also be used to make anonymous HTTP calls (endpoint is then ignored).",
           "additionalProperties": true
         },
         "variables": {
@@ -528,11 +528,11 @@
             "$ref": "#/definitions/FileItem"
           }
         },
-        "http-actions": {
+        "webcalls": {
           "type": ["array", "null"],
           "description": "List of HTTP request items. Null/empty runs none.",
           "items": {
-            "$ref": "#/definitions/HttpActionItem"
+            "$ref": "#/definitions/WebCallItem"
           }
         },
         "snippets": {
@@ -727,9 +727,9 @@
           "type": "string",
           "description": "Exports key under which to store the output. Also exposes '<key>.stderr' and '<key>.status'."
         },
-        "http-action": {
-          "$ref": "#/definitions/HttpActionItem",
-          "description": "Direct-feed: a single HTTP request. Promotes this dict into an http-actions action."
+        "webcall": {
+          "$ref": "#/definitions/WebCallItem",
+          "description": "Direct-feed: a single HTTP request. Promotes this dict into a webcalls action."
         },
         "file": {
           "$ref": "#/definitions/FileItem",
@@ -1343,7 +1343,7 @@
         }
       }
     },
-    "HttpActionItem": {
+    "WebCallItem": {
       "type": "object",
       "description": "One HTTP request.",
       "required": [
